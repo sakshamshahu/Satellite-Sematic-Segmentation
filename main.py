@@ -74,10 +74,84 @@ mask_dataset =  np.array(mask_dataset)
 
 image_number = random.randint(0, len(image_dataset))
 plt.figure(figsize=(12, 6))
-plt.subplot(119)
+plt.subplot(121)
 plt.imshow(np.reshape(image_dataset[image_number], (patch_size, patch_size, 3)))
 plt.subplot(122)
 plt.imshow(np.reshape(mask_dataset[image_number], (patch_size, patch_size, 3)))
 plt.show()
+
+'''
+Banana:128,192,128::
+Coconut:250,125,187::
+House:184,61,245::
+Rice:250,250,55::
+Road:250,50,83::
+Tree:144,96,0::
+Water:51,221,255::
+background:0,0,0::
+
+'''
+
+Banana = np.array((128,192,128))
+Coconut = np.array((250,125,187))
+House  = np.array((184,61,245))
+Rice = np.array((250,250,55))
+Road = np.array((250,50,83))
+Tree = np.array((144,96,0))
+Water = np.array((51,221,255))
+Unlabelled = np.array((0,0,0))
+
+
+label = single_patch_mask
+
+
+def rgb_to_2D_label(label):
+    """
+    Replace pixels with specific RGB values
+    """
+    label_seg = np.zeros(label.shape,dtype=np.uint8)
+    
+    label_seg [np.all(label == Banana,axis=-1)] = 0
+    label_seg [np.all(label==Coconut,axis=-1)] = 1
+    label_seg [np.all(label==House,axis=-1)] = 2
+    label_seg [np.all(label==Rice,axis=-1)] = 3
+    label_seg [np.all(label== Road,axis=-1)] = 4
+    label_seg [np.all(label== Tree,axis=-1)] = 5
+    label_seg [np.all(label== Water,axis=-1)] = 6
+    label_seg [np.all(label== Unlabelled,axis=-1)] = 7    
+    
+    label_seg = label_seg[:,:,0]  #Just take the first channel, no need for all 3 channels
+    
+    return label_seg
+
+labels = []
+for i in range(mask_dataset.shape[0]):
+    label = rgb_to_2D_label(mask_dataset[i])
+    labels.append(label)
+    
+labels = np.array(labels)
+labels = np.expand_dims(labels, axis = 3)
+
+print(np.unique(labels))
+
+import random
+import numpy as np
+image_number = random.randint(0, len(image_dataset))
+plt.figure(figsize=(12, 6))
+plt.subplot(121)
+plt.imshow(image_dataset[image_number])
+plt.subplot(122)
+plt.imshow(labels[image_number][:,:,0])
+plt.show()
+
+
+
+
+
+
+
+
+
+
 
 
