@@ -6,7 +6,6 @@ Created on Fri Apr 12 13:55:10 2024
 @author: saksham
 """
 
-import tensorflow as tf
 import os
 import cv2
 import numpy as np 
@@ -14,6 +13,11 @@ from matplotlib import pyplot as plt
 from PIL import Image
 from patchify import patchify
 import random
+
+os.environ["SM_FRAMEWORK"] = "tf.keras"
+from tensorflow import keras
+import segmentation_models as sm
+
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 scaler = MinMaxScaler()
 
@@ -134,8 +138,7 @@ labels = np.expand_dims(labels, axis = 3)
 
 print(np.unique(labels))
 
-import random
-import numpy as np
+
 image_number = random.randint(0, len(image_dataset))
 plt.figure(figsize=(12, 6))
 plt.subplot(121)
@@ -145,9 +148,41 @@ plt.imshow(labels[image_number][:,:,0])
 plt.show()
 
 
+n_classes = len(np.unique(labels))
+from keras.utils import to_categorical
+labels_cat = to_categorical(labels, num_classes=n_classes)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(image_dataset, labels_cat, test_size = 0.20, random_state = 42)
+
+weights = [0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125]
+dice_loss = sm.losses.DiceLoss(class_weights=weights) 
+focal_loss = sm.losses.CategoricalFocalLoss()
+total_loss = dice_loss + (1 * focal_loss)  #similar to IOU
 
 
+IMG_HEIGHT = X_train.shape[1]
+IMG_WIDTH  = X_train.shape[2]
+IMG_CHANNELS = X_train.shape[3]
 
+
+from Multi_unet import multi_unet_model, jacard_coef  
+
+metrics=['accuracy', jacard_coef]
+
+def get_model():
+    return multi_unet_model(n_classes=n_classes, IMG_HEIGHT=IMG_HEIGHT, IMG_WIDTH=IMG_WIDTH, IMG_CHANNELS=IMG_CHANNELS)
+
+model = get_model()
+model.compile(optimizer='adam', loss=total_loss, metrics=metrics)
+model.summary()
+
+history1 = model.fit(X_train, y_train, 
+                    batch_size = 16, 
+                    verbose=1, 
+                    epochs=50, 
+                    validation_data=(X_test, y_test), 
+                    shuffle=False)
 
 
 
